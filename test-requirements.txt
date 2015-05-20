@@ -1,0 +1,6 @@
+flake8
+mock>=1.0.0
+nose
+nosexcover
+testtools
+tox
