@@ -1,0 +1,76 @@
+CHANGES
+=======
+
+* changin version number
+
+v0.1.2
+------
+
+* 
+* Fixed it yet again
+* Fxed it again
+* Fixed docs
+* "Added docs"
+* Added asyncio support
+
+0.3.2
+-----
+
+* Fix print statements for Python 3
+* fix linting
+* add GETFILECHECKSUM support
+
+0.3.0
+-----
+
+* Add Python 3 support
+* Convert README to RST
+* Implement PBR for versioning
+* Restructure test layout
+* Add Daan Debie to AUTHORS file
+* Closes #5, adding Travis CI status
+* Initial Travis CI file
+* setup.py now points to the right GH repo
+* Moved requirements files to project root, renamed to standard naming conventions setup.py uses (test-)requirements.txt for dependencies MANIFEST.in added to ensure requirements files are added to dist for Tox
+* Make PEP8 happier
+* Update readme, license, authors
+* Convert non-string parameters in the current way
+* Ensure destination path contains a leading slash
+* URL encode query parameters
+* Support HDFS paths with unicode characters
+* Bump version after last pull request
+* version bumo, authors file, comments
+* fixed unittest code
+* I fixed performance of operation to large file
+* update version for new release 0.2.2
+* do not pass file_data to name node
+* Changed append_file() to use content type application/octet-stream
+* version bump
+* added unit test for header in create file 'content-type': 'application/octet-stream', added AUTHORS file, pep8
+* Fix for WebHDFS API complaint during create file operation: Data upload requests must have content-type set to 'application/octet-stream
+* Add build status indicator from Jenkins
+* add docs directory
+* update with links to documentation
+* added sphix documentation
+* Update README.md
+* setup changes, link to pypi
+* correct spelling error
+* change to example code, and create_file return value
+* removing print statement from unit tests
+* remove temp function
+* adding unit tests
+* Fix typo
+* adding tox support
+* added verbosity to example
+* change example ip to localhost
+* adding examples
+* update to comments for client functions
+* add doc strings to client methods
+* pep8 cleanup
+* adding nosetests and setup configurations
+* update README
+* update to README
+* adding .gitignore and LICENSE files
+* removing .pyc
+* initial commit of hdfs wrapper
+* first commit
