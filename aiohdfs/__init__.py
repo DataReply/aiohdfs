@@ -1,13 +1,12 @@
-__version__="0.1.2"
+__version__ = "0.1.3"
 import http.client as http_client
-
 from aiohttp import request
 from asyncio import coroutine
+
 try:
     from urllib.parse import quote, quote_plus
 except ImportError:
     from urllib import quote, quote_plus
-
 
 from . import errors
 from . import operations
@@ -40,6 +39,7 @@ class Client(object):
         # create base uri to be used in request operations
         self.base_uri = 'http://{host}:{port}/webhdfs/v1/'.format(
             host=self.host, port=self.port)
+
     @coroutine
     def create_file(self, path, file_data, **kwargs):
         """
@@ -85,23 +85,29 @@ class Client(object):
 
         init_response = yield from request('put', uri, allow_redirects=False)
 
-        if not init_response.status == http_client.TEMPORARY_REDIRECT:
-            msg=yield from init_response.content.read()
-            _raise_aiohdfs_exception(
-                init_response.status, msg)
+        try:
+            if not init_response.status == http_client.TEMPORARY_REDIRECT:
+                msg = yield from init_response.content.read()
+                _raise_aiohdfs_exception(init_response.status, msg)
+        finally:
+            yield from init_response.release()
 
         # Get the address provided in the location header of the
         # initial response from the namenode and make the CREATE request
         # to the datanode
         uri = init_response.headers['location']
-        response = yield from request('put',  uri, data=file_data,
-                   headers={'content-type': 'application/octet-stream'})
+        response = yield from request('put', uri, data=file_data,
+                                      headers={'content-type': 'application/octet-stream'})
 
-        if not response.status == http_client.CREATED:
-            msg=yield from init_response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        try:
+            if not response.status == http_client.CREATED:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return True
 
-        return True
+        finally:
+            yield from response.release()
 
     @coroutine
     def append_file(self, path, file_data, **kwargs):
@@ -140,25 +146,31 @@ class Client(object):
         # make the initial APPEND call to the HDFS namenode
         optional_args = kwargs
         uri = self._create_uri(path, operations.APPEND, **optional_args)
-        init_response =  yield from request('post', uri, allow_redirects=False)
+        init_response = yield from request('post', uri, allow_redirects=False)
 
-        if not init_response.status == http_client.TEMPORARY_REDIRECT:
-            msg=yield from init_response.content.read()
-            _raise_aiohdfs_exception(
-                init_response.status,msg)
+        try:
+            if not init_response.status == http_client.TEMPORARY_REDIRECT:
+                msg = yield from init_response.content.read()
+                _raise_aiohdfs_exception(init_response.status, msg)
+        finally:
+            yield from init_response.release()
 
         # Get the address provided in the location header of the
         # initial response from the namenode and make the APPEND request
         # to the datanode
         uri = init_response.headers['location']
-        response =  yield from request('post',  uri, data=file_data,
-                   headers={'content-type': 'application/octet-stream'})
+        response = yield from request('post', uri, data=file_data,
+                                      headers={'content-type': 'application/octet-stream'})
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return True
 
-        return True
+        finally:
+            yield from response.release()
 
     @coroutine
     def read_file(self, path, **kwargs):
@@ -189,13 +201,20 @@ class Client(object):
         optional_args = kwargs
         uri = self._create_uri(path, operations.OPEN, **optional_args)
 
-        response =yield from request('get', uri, allow_redirects=True)
+        response = yield from request('get', uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        data = None
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+                return
+            else:
+                return (yield from response.content.read())
 
-        return (yield from response.content.read())
+        finally:
+            yield from response.release()
+
     @coroutine
     def make_dir(self, path, **kwargs):
         """
@@ -225,11 +244,16 @@ class Client(object):
 
         response = yield from request('put', uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return True
 
-        return True
+        finally:
+            yield from response.release()
+
     @coroutine
     def rename_file_dir(self, path, destination_path):
         """
@@ -254,13 +278,18 @@ class Client(object):
         uri = self._create_uri(path, operations.RENAME,
                                destination=destination_path)
 
-        response =  yield from request('put', uri, allow_redirects=True)
+        response = yield from request('put', uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return True
 
-        return True
+        finally:
+            yield from response.release()
+
     @coroutine
     def delete_file_dir(self, path, recursive=False):
         """
@@ -286,13 +315,18 @@ class Client(object):
         """
 
         uri = self._create_uri(path, operations.DELETE, recursive=recursive)
-        response =  yield from request('delete', uri, allow_redirects=True)
+        response = yield from request('delete', uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status,msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return True
 
-        return True
+        finally:
+            yield from response.release()
+
     @coroutine
     def get_file_dir_status(self, path):
         """
@@ -347,11 +381,16 @@ class Client(object):
         uri = self._create_uri(path, operations.GETFILESTATUS)
         response = yield from request('get', uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status,msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return (yield from response.json())
 
-        return (yield from response.json())
+        finally:
+            yield from response.release()
+
     @coroutine
     def get_file_checksum(self, path):
         """
@@ -380,11 +419,15 @@ class Client(object):
         uri = self._create_uri(path, operations.GETFILECHECKSUM)
         response = yield from request('get', uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return (yield from response.json())
+        finally:
+            yield from response.release()
 
-        return (yield from response.json())
     @coroutine
     def list_dir(self, path):
         """
@@ -437,14 +480,16 @@ class Client(object):
         uri = self._create_uri(path, operations.LISTSTATUS)
 
         response = yield from request('get', uri, allow_redirects=True)
-        #response = requests.get(uri, allow_redirects=True)
 
-        if not response.status == http_client.OK:
-            msg=yield from response.content.read()
-            _raise_aiohdfs_exception(response.status, msg)
+        try:
+            if not response.status == http_client.OK:
+                msg = yield from response.content.read()
+                _raise_aiohdfs_exception(response.status, msg)
+            else:
+                return (yield from response.json())
 
-
-        return (yield from response.json())
+        finally:
+            yield from response.release()
 
     def _create_uri(self, path, operation, **kwargs):
         """
@@ -483,14 +528,4 @@ class Client(object):
 
 
 def _raise_aiohdfs_exception(resp_code, message=None):
-
-    if resp_code == http_client.BAD_REQUEST:
-        raise errors.BadRequest(msg=message)
-    elif resp_code == http_client.UNAUTHORIZED:
-        raise errors.Unauthorized(msg=message)
-    elif resp_code == http_client.NOT_FOUND:
-        raise errors.FileNotFound(msg=message)
-    elif resp_code == http_client.METHOD_NOT_ALLOWED:
-        raise errors.MethodNotAllowed(msg=message)
-    else:
-        raise errors.AioHdfsException(msg=message)
+    raise errors.AioHdfsException.from_response(resp_code, message)
